@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Tuple, Union, cast
 
-from ..types import Coordmap, CoordmapDims, CoordmapPanelDomain, CoordmapPanelRange
+from ..types import (
+    Coordmap,
+    CoordmapDims,
+    CoordmapPanel,
+    CoordmapPanelDomain,
+    CoordmapPanelRange,
+)
 
 if TYPE_CHECKING:
     import numpy as np
@@ -19,15 +25,23 @@ if TYPE_CHECKING:
 
 
 def get_coordmap(fig: Figure) -> Union[Coordmap, None]:
-    all_axes: List[Axes] = fig.get_axes()  # pyright: reportUnknownMemberType=false
-    axes = all_axes[0]
-
     dims_ar: npt.NDArray[np.double] = fig.get_size_inches() * fig.get_dpi()
     dims: CoordmapDims = {
         "width": dims_ar[0],
         "height": dims_ar[1],
     }
 
+    all_axes: List[Axes] = fig.get_axes()  # pyright: reportUnknownMemberType=false
+
+    coordmap: Coordmap = {
+        "panels": [get_coordmap_panel(axes, dims["height"]) for axes in all_axes],
+        "dims": dims,
+    }
+
+    return coordmap
+
+
+def get_coordmap_panel(axes: Axes, height: float) -> CoordmapPanel:
     domain_xlim = cast(Tuple[float, float], axes.get_xlim())
     domain_ylim = cast(Tuple[float, float], axes.get_ylim())
 
@@ -56,20 +70,13 @@ def get_coordmap(fig: Figure) -> Union[Coordmap, None]:
     range: CoordmapPanelRange = {
         "left": range_ar[0],
         "right": range_ar[2],
-        "bottom": dims["height"] - range_ar[1],
-        "top": dims["height"] - range_ar[3],
+        "bottom": height - range_ar[1],
+        "top": height - range_ar[3],
     }
 
-    coordmap: Coordmap = {
-        "panels": [
-            {
-                "domain": domain,
-                "range": range,
-                "log": {"x": None, "y": None},
-                "mapping": {},
-            }
-        ],
-        "dims": dims,
+    return {
+        "domain": domain,
+        "range": range,
+        "log": {"x": None, "y": None},
+        "mapping": {},
     }
-
-    return coordmap
